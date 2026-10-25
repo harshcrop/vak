@@ -1,7 +1,7 @@
 import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Keys, Logo } from "../components/ui";
-import { api, formatBytes, shortcutText, useVak } from "../lib/api";
+import { api, formatBytes, shortcutText, useKoe } from "../lib/api";
 
 type StepState = "done" | "current" | "todo";
 
@@ -39,7 +39,7 @@ function Step({ state, title, desc, action }: { state: StepState; title: string;
 }
 
 export function Onboarding() {
-  const { permissions, setPermissions, models, progress, settings, update } = useVak();
+  const { permissions, setPermissions, models, progress, settings, update } = useKoe();
   const [busy, setBusy] = useState(false);
 
   // Accessibility is granted in System Settings; poll until it flips.
@@ -79,7 +79,7 @@ export function Onboarding() {
         <div style={{ marginBottom: 16 }}>
           <Logo size={66} radius={19} />
         </div>
-        <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: -0.4, marginBottom: 6 }}>Speak. Vāk types.</div>
+        <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: -0.4, marginBottom: 6 }}>Speak. Kōe types.</div>
         <div style={{ fontSize: 14, lineHeight: 1.55, color: "var(--fg-3)", maxWidth: 420, marginBottom: 26, textWrap: "pretty" } as React.CSSProperties}>
           Hold one key anywhere on your Mac and your words appear in the app you are already in. Everything runs on this machine.
         </div>
@@ -87,7 +87,7 @@ export function Onboarding() {
           <Step
             state={micState}
             title="Microphone access"
-            desc={mic === "granted" ? "Granted" : mic === "denied" ? "Denied — turn it on in System Settings" : "So Vāk can hear you while you hold the key"}
+            desc={mic === "granted" ? "Granted" : mic === "denied" ? "Denied — turn it on in System Settings" : "So Kōe can hear you while you hold the key"}
             action={
               mic !== "granted" && (
                 <button
@@ -108,7 +108,7 @@ export function Onboarding() {
           <Step
             state={axState}
             title="Accessibility access"
-            desc={permissions.accessibility ? "Granted" : "Lets Vāk type into other apps"}
+            desc={permissions.accessibility ? "Granted" : "Lets Kōe type into other apps"}
             action={
               !permissions.accessibility && (
                 <button className={`btn lg${axState === "current" ? " primary" : ""}`} onClick={() => api.openPrivacy("accessibility")}>

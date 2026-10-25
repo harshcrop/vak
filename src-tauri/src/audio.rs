@@ -334,3 +334,36 @@ pub fn chime(device: Option<String>, volume: f32, rising: bool) {
         }
     });
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resample_48k_to_16k() {
+        let input: Vec<f32> = (0..48_000).map(|i| (i as f32 / 48.0).sin()).collect();
+        let out = resample(&input, 48_000, 16_000);
+        assert_eq!(out.len(), 16_000);
+        assert_eq!(resample(&input, 16_000, 16_000).len(), 48_000);
+    }
+
+    #[test]
+    fn levels_and_peaks() {
+        assert_eq!(to_db(0.0), -80.0);
+        assert!((to_db(1.0)).abs() < 0.01);
+        let p = peaks(&[0.0, 0.5, 0.0, 1.0], 2);
+        assert_eq!(p.len(), 2);
+        assert!((p[1] - 1.0).abs() < 1e-6 && p[0] < 1.0);
+    }
+
+    #[test]
+    fn wav_roundtrip() {
+        let path = std::env::temp_dir().join(format!("koe-{}.wav", std::process::id()));
+        let samples: Vec<f32> = (0..1600).map(|i| (i as f32 / 10.0).sin() * 0.5).collect();
+        write_wav(&path, &samples).unwrap();
+        let mut r = hound::WavReader::open(&path).unwrap();
+        assert_eq!(r.spec().sample_rate, TARGET_RATE);
+        assert_eq!(r.samples::<i16>().count(), 1600);
+        std::fs::remove_file(path).ok();
+    }
+}

@@ -27,7 +27,7 @@ static LOGS: OnceLock<Logs> = OnceLock::new();
 pub fn log_dir() -> PathBuf {
     dirs::home_dir()
         .unwrap_or_default()
-        .join("Library/Logs/Vāk")
+        .join("Library/Logs/Kōe")
 }
 
 pub fn init(app: AppHandle) {
@@ -36,7 +36,7 @@ pub fn init(app: AppHandle) {
     let file = OpenOptions::new()
         .create(true)
         .append(true)
-        .open(dir.join("vak.log"))
+        .open(dir.join("koe.log"))
         .ok();
     let _ = LOGS.set(Logs {
         lines: Mutex::new(VecDeque::with_capacity(MAX_LINES)),

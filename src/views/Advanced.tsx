@@ -1,6 +1,6 @@
 import { EyeOff, LayoutPanelTop, MemoryStick, Power, Trash2, Info, EyeOff as Hidden, Monitor, FlaskConical } from "lucide-react";
 import { Header, Row, Section, Select, Toggle } from "../components/ui";
-import { api, formatBytes, useVak, type Settings } from "../lib/api";
+import { api, formatBytes, useKoe, type Settings } from "../lib/api";
 import type { ViewProps } from "../windows/MainWindow";
 
 const POSITIONS: { id: Settings["overlayPosition"]; label: string }[] = [
@@ -37,7 +37,7 @@ function PositionTile({ id, on, onClick }: { id: Settings["overlayPosition"]; on
 }
 
 export function AdvancedView({ toast }: ViewProps) {
-  const { settings: s, update, stats, models, refreshHistory } = useVak();
+  const { settings: s, update, stats, models, refreshHistory } = useKoe();
   const active = models.find((m) => m.id === s.activeModel);
 
   return (
@@ -49,10 +49,10 @@ export function AdvancedView({ toast }: ViewProps) {
             <Row icon={Power} title="Launch at login" desc="Starts straight to the menu bar.">
               <Toggle on={s.launchAtLogin} onChange={(launchAtLogin) => update({ launchAtLogin })} />
             </Row>
-            <Row icon={Hidden} title="Start hidden" desc="Don’t open this window when Vāk launches.">
+            <Row icon={Hidden} title="Start hidden" desc="Don’t open this window when Kōe launches.">
               <Toggle on={s.startHidden} onChange={(startHidden) => update({ startHidden })} />
             </Row>
-            <Row icon={Monitor} title="Show menu bar icon" desc="The five bars, which move while you speak.">
+            <Row icon={Monitor} title="Show menu bar icon" desc="The ō mark. Its macron moves while you speak.">
               <Toggle on={s.showTrayIcon} onChange={(showTrayIcon) => update({ showTrayIcon })} />
             </Row>
             <Row icon={LayoutPanelTop} title="Overlay position" desc="Where the listening pill sits while you talk.">

@@ -2,10 +2,15 @@ import { ChevronsUpDown, type LucideIcon } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { prettyShortcut } from "../lib/api";
 
-export function Logo({ size = 30, radius }: { size?: number; radius?: number }) {
+/** The ō mark: ring + red macron (the macron doubles as a "recording" light). `dark` = black tile, else white tile for dark UIs. */
+export function Logo({ size = 30, radius, dark }: { size?: number; radius?: number; dark?: boolean }) {
+  const ink = dark ? "#fff" : "#161616";
   return (
-    <div className="logo" style={{ width: size, height: size, borderRadius: radius ?? size * 0.29 }}>
-      <span style={{ fontSize: size * 0.52 }}>वा</span>
+    <div className={`logo${dark ? " dark" : ""}`} style={{ width: size, height: size, borderRadius: radius ?? size * 0.22 }}>
+      <svg viewBox="0 0 224 224" width={size} height={size} aria-hidden>
+        <rect x="73" y="49" width="78" height="18" rx="9" fill="var(--macron)" />
+        <circle cx="112" cy="135" r="42.5" fill="none" stroke={ink} strokeWidth="19" />
+      </svg>
     </div>
   );
 }

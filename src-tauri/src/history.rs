@@ -130,3 +130,83 @@ impl History {
         Some(v[v.len() / 2])
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn entry(id: i64, words: u32, audio: Option<&str>) -> Entry {
+        Entry {
+            id: id.to_string(),
+            created: id,
+            app: "Notes".into(),
+            duration_ms: 1000,
+            words,
+            text: "hello".into(),
+            raw: "hello".into(),
+            post_processed: false,
+            starred: false,
+            audio: audio.map(String::from),
+            peaks: vec![],
+            model: "tiny".into(),
+            latency_ms: id as u64 % 1000,
+        }
+    }
+
+    fn tmp() -> PathBuf {
+        let d = std::env::temp_dir().join(format!("koe-hist-{}-{}", std::process::id(), chrono::Utc::now().timestamp_nanos_opt().unwrap()));
+        std::fs::create_dir_all(&d).unwrap();
+        d
+    }
+
+    #[test]
+    fn prune_keeps_starred_and_deletes_audio() {
+        let d = tmp();
+        let mut h = History::load(&d);
+        let now = chrono::Utc::now().timestamp_millis();
+        std::fs::write(h.recordings.join("old.wav"), b"x").unwrap();
+        h.push(entry(now - 3, 1, Some("old.wav")), 10);
+        h.toggle_star(&(now - 3).to_string());
+        h.push(entry(now - 2, 1, None), 10);
+        h.push(entry(now - 1, 1, None), 1);
+        // keep=1: newest plus the starred one survive.
+        assert_eq!(h.entries.len(), 2);
+        assert!(h.entries.iter().any(|e| e.starred));
+        // Reload from disk.
+        let h2 = History::load(&d);
+        assert_eq!(h2.entries.len(), 2);
+        std::fs::remove_dir_all(d).ok();
+    }
+
+    #[test]
+    fn old_audio_is_removed_but_transcript_kept() {
+        let d = tmp();
+        let mut h = History::load(&d);
+        std::fs::write(h.recordings.join("a.wav"), b"x").unwrap();
+        let ten_days_ago = chrono::Utc::now().timestamp_millis() - 10 * 86_400_000;
+        h.push(entry(ten_days_ago, 5, Some("a.wav")), 100);
+        h.prune(100, Some(3));
+        assert_eq!(h.entries.len(), 1);
+        assert!(h.entries[0].audio.is_none());
+        assert!(!h.recordings.join("a.wav").exists());
+        std::fs::remove_dir_all(d).ok();
+    }
+
+    #[test]
+    fn delete_clear_and_stats() {
+        let d = tmp();
+        let mut h = History::load(&d);
+        let now = chrono::Utc::now().timestamp_millis();
+        std::fs::write(h.recordings.join("b.wav"), b"xyz").unwrap();
+        h.push(entry(now - 100, 7, Some("b.wav")), 100);
+        h.push(entry(now - 50, 3, None), 100);
+        assert_eq!(h.words_since(now - 1000), 10);
+        assert!(h.median_latency().is_some());
+        assert!(h.disk_bytes() >= 3);
+        h.clear_audio();
+        assert!(!h.recordings.join("b.wav").exists());
+        h.delete(&(now - 50).to_string());
+        assert_eq!(h.entries.len(), 1);
+        std::fs::remove_dir_all(d).ok();
+    }
+}

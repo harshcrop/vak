@@ -160,7 +160,7 @@ type Store = Bootstrap & {
 
 const Ctx = createContext<Store | null>(null);
 
-export function VakProvider({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) {
+export function KoeProvider({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) {
   const [boot, setBoot] = useState<Bootstrap | null>(null);
   const [progress, setProgress] = useState<Record<string, Progress>>({});
 
@@ -217,9 +217,9 @@ export function VakProvider({ children, fallback }: { children: ReactNode; fallb
   return createElement(Ctx.Provider, { value }, children);
 }
 
-export function useVak(): Store {
+export function useKoe(): Store {
   const v = useContext(Ctx);
-  if (!v) throw new Error("useVak outside VakProvider");
+  if (!v) throw new Error("useKoe outside KoeProvider");
   return v;
 }
 

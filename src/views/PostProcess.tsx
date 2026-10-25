@@ -1,7 +1,7 @@
 import { Bookmark, Check, Cloud, Cpu, Info, Play, Plus, Server, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Header, Keys, Section, Toggle } from "../components/ui";
-import { api, useVak, type Settings } from "../lib/api";
+import { api, useKoe, type Settings } from "../lib/api";
 import type { ViewProps } from "../windows/MainWindow";
 
 type ProviderId = Settings["postProcess"]["provider"];
@@ -14,7 +14,7 @@ const PROVIDERS: { id: ProviderId; title: string; icon: LucideIcon; hint: string
 const SAMPLE = "um so basically we should ship the migration behind a flag on thursday and uh tell support before we flip it";
 
 export function PostProcessView({ toast }: ViewProps) {
-  const { settings: s, update, history } = useVak();
+  const { settings: s, update, history } = useKoe();
   const pp = s.postProcess;
   const recipe = pp.recipes[pp.activeRecipe] ?? pp.recipes[0];
   const [prompt, setPrompt] = useState(recipe?.prompt ?? "");

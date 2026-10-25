@@ -2,7 +2,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { Activity, AlertTriangle, Check, ChevronRight, FolderOpen, Share } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Header, LevelBars, Section } from "../components/ui";
-import { api, formatBytes, useLevel, useVak } from "../lib/api";
+import { api, formatBytes, useLevel, useKoe } from "../lib/api";
 import type { ViewProps } from "../windows/MainWindow";
 
 const TAG_COLOR: Record<string, string> = {
@@ -16,7 +16,7 @@ function isWarning(msg: string) {
 }
 
 export function DiagnosticsView({ toast }: ViewProps) {
-  const { models, loadedModel, stats, permissions, build, logs, settings } = useVak();
+  const { models, loadedModel, stats, permissions, build, logs, settings } = useKoe();
   const [filter, setFilter] = useState<"all" | "warn" | "audio">("all");
   const [testing, setTesting] = useState(false);
   const db = useLevel();
@@ -78,7 +78,7 @@ export function DiagnosticsView({ toast }: ViewProps) {
           title="Live log"
           right={
             <>
-              <span style={{ fontSize: 11.5, color: "var(--fg-4)", marginRight: 6 }}>tail · vak.log</span>
+              <span style={{ fontSize: 11.5, color: "var(--fg-4)", marginRight: 6 }}>tail · koe.log</span>
               {(
                 [
                   ["all", "All"],
@@ -141,7 +141,7 @@ export function DiagnosticsView({ toast }: ViewProps) {
             <FolderOpen strokeWidth={1.75} style={{ width: 15, height: 15, color: "var(--fg-3)" }} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 12.5, color: "var(--fg-2)" }}>Reveal log folder</div>
-              <div style={{ fontSize: 11, color: "var(--fg-4)" }}>~/Library/Logs/Vāk</div>
+              <div style={{ fontSize: 11, color: "var(--fg-4)" }}>~/Library/Logs/Kōe</div>
             </div>
             <ChevronRight strokeWidth={1.75} style={{ width: 15, height: 15, color: "var(--fg-5)" }} />
           </button>

@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Logo, Toast } from "../components/ui";
-import { VakProvider, useVak } from "../lib/api";
+import { KoeProvider, useKoe } from "../lib/api";
 import { AboutView } from "../views/About";
 import { AdvancedView } from "../views/Advanced";
 import { DiagnosticsView } from "../views/Diagnostics";
@@ -41,14 +41,14 @@ const VIEWS: { id: string; label: string; icon: LucideIcon; C: (p: ViewProps) =>
 
 export function MainWindow() {
   return (
-    <VakProvider fallback={<div className="shell" data-tauri-drag-region />}>
+    <KoeProvider fallback={<div className="shell" data-tauri-drag-region />}>
       <Shell />
-    </VakProvider>
+    </KoeProvider>
   );
 }
 
 function Shell() {
-  const { settings, models, stats, build, update, loadedModel } = useVak();
+  const { settings, models, stats, build, update, loadedModel } = useKoe();
   const [view, setView] = useState("general");
   const [toast, setToast] = useState<string | null>(null);
   const clearToast = useCallback(() => setToast(null), []);
@@ -80,8 +80,8 @@ function Shell() {
           <div className="brand" data-tauri-drag-region>
             <Logo size={34} />
             <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-              <span className="brand-name">वाक्</span>
-              <span className="brand-sub">Vāk</span>
+              <span className="brand-name">Kōe</span>
+              <span className="brand-sub">voice, on-device</span>
             </div>
           </div>
           <nav className="nav">

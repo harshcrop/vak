@@ -1,15 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <defs>
-    <linearGradient id="g" x1="0.2" y1="0" x2="0.8" y2="1">
-      <stop offset="0" stop-color="#f7a341"/>
-      <stop offset="1" stop-color="#c2461b"/>
-    </linearGradient>
-    <linearGradient id="hl" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.35"/>
-      <stop offset="0.12" stop-color="#ffffff" stop-opacity="0"/>
-    </linearGradient>
-  </defs>
-  <rect x="100" y="100" width="824" height="824" rx="190" fill="url(#g)"/>
-  <rect x="100" y="100" width="824" height="824" rx="190" fill="url(#hl)"/>
-  <text x="512" y="660" text-anchor="middle" font-family="Kohinoor Devanagari, Devanagari Sangam MN, Noto Sans Devanagari" font-weight="600" font-size="440" fill="#ffffff">वा</text>
+  <!-- Kōe macron mark: the ō as an app icon; the red macron doubles as a "recording" light. -->
+  <rect x="100" y="100" width="824" height="824" rx="184" fill="#161616"/>
+  <rect x="368" y="281" width="288" height="66" rx="33" fill="#e8472e"/>
+  <circle cx="512" cy="597" r="156" fill="none" stroke="#ffffff" stroke-width="70"/>
 </svg>

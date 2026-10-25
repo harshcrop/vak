@@ -2,11 +2,11 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { Copy, FolderOpen, Pause, Play, Search, Star, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Header } from "../components/ui";
-import { api, formatDuration, formatWhen, useVak, type Entry } from "../lib/api";
+import { api, formatDuration, formatWhen, useKoe, type Entry } from "../lib/api";
 import type { ViewProps } from "../windows/MainWindow";
 
 export function HistoryView({ toast }: ViewProps) {
-  const { history, recordingsDir } = useVak();
+  const { history, recordingsDir } = useKoe();
   const [q, setQ] = useState("");
   const [starred, setStarred] = useState(false);
   const [playing, setPlaying] = useState<string | null>(null);

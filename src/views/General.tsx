@@ -1,7 +1,7 @@
 import { Mic, Play, RefreshCw, RotateCcw, Volume2 } from "lucide-react";
 import { useEffect } from "react";
 import { Header, LevelBars, Row, Section, Segmented, Select, ShortcutField, Slider, Toggle } from "../components/ui";
-import { api, useLevel, useVak } from "../lib/api";
+import { api, useLevel, useKoe } from "../lib/api";
 import type { ViewProps } from "../windows/MainWindow";
 
 function levelWords(db: number) {
@@ -12,7 +12,7 @@ function levelWords(db: number) {
 }
 
 export function GeneralView({ toast }: ViewProps) {
-  const { settings: s, update, inputDevices, outputDevices, defaultInput, defaultOutput, refresh } = useVak();
+  const { settings: s, update, inputDevices, outputDevices, defaultInput, defaultOutput, refresh } = useKoe();
   const db = useLevel();
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export function GeneralView({ toast }: ViewProps) {
 
   return (
     <>
-      <Header title="General" subtitle="How Vāk starts listening, and what it sounds like">
+      <Header title="General" subtitle="How Kōe starts listening, and what it sounds like">
         <button
           className="btn"
           onClick={async () => {

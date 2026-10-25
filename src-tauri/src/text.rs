@@ -140,8 +140,8 @@ mod tests {
     #[test]
     fn cleans_fillers_and_corrections() {
         let s = Settings::default();
-        let out = clean("um so we should ship the grpc thing with vaak uh [BLANK_AUDIO]", &s, "Notes");
-        assert_eq!(out, "So we should ship the gRPC thing with Vāk.");
+        let out = clean("um so we should ship the grpc thing with koey uh [BLANK_AUDIO]", &s, "Notes");
+        assert_eq!(out, "So we should ship the gRPC thing with Kōe.");
     }
 
     #[test]

@@ -16,12 +16,11 @@
   --accent-bar: linear-gradient(90deg, oklch(0.74 0.17 62), oklch(0.6 0.18 32));
   --accent-soft: oklch(0.68 0.19 48 / 0.16);
   --accent-line: oklch(0.68 0.19 48 / 0.5);
-  --logo-grad: linear-gradient(150deg, oklch(0.74 0.17 62), oklch(0.6 0.18 32));
+  --macron: #e8472e;
   --ok: oklch(0.72 0.15 160);
   --rec: oklch(0.66 0.2 22);
   --danger: rgb(255, 160, 140);
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
-  --deva: "Noto Sans Devanagari", "Kohinoor Devanagari", sans-serif;
   --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
   color-scheme: dark;
 }
@@ -43,10 +42,9 @@ input, textarea, select { font: inherit; color: inherit; }
 textarea, input[type="text"], input[type="password"], input[type="url"] { user-select: text; -webkit-user-select: text; }
 .selectable { user-select: text; -webkit-user-select: text; cursor: text; }
 .mono { font-family: var(--mono); }
-.deva { font-family: var(--deva); }
 :focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
 
-@keyframes vakpulse { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.06); } }
+@keyframes koepulse { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.06); } }
 @keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
 /* ---------- Main window shell ---------- */
@@ -66,7 +64,7 @@ textarea, input[type="text"], input[type="password"], input[type="url"] { user-s
 }
 .sidebar-drag { height: 44px; flex: none; }
 .brand { display: flex; align-items: center; gap: 10px; padding: 4px 16px 16px; margin-bottom: 8px; border-bottom: 0.5px solid rgba(255, 255, 255, 0.08); }
-.brand-name { font-family: var(--deva); font-size: 17px; font-weight: 600; line-height: 1.2; color: var(--fg); }
+.brand-name { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.2; color: var(--fg); }
 .brand-sub { font-size: 10.5px; letter-spacing: 0.4px; color: var(--fg-4); }
 .nav { display: flex; flex-direction: column; gap: 2px; padding: 0 10px; }
 .nav-item {
@@ -199,8 +197,8 @@ textarea.field { font-family: var(--mono); font-size: 12.5px; line-height: 1.65;
 .levelbars { display: flex; align-items: center; gap: 2.5px; height: 18px; }
 .levelbars i { width: 2.5px; border-radius: 2px; background: var(--accent); transition: height 0.08s linear; }
 
-.logo { display: flex; align-items: center; justify-content: center; flex: none; background: var(--logo-grad); box-shadow: 0 2px 8px rgba(180, 70, 10, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
-.logo span { font-family: var(--deva); font-weight: 600; color: #fff; line-height: 1; }
+.logo { display: flex; align-items: center; justify-content: center; flex: none; overflow: hidden; background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35); }
+.logo.dark { background: #161616; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), inset 0 0 0 0.5px rgba(255, 255, 255, 0.12); }
 
 .empty { padding: 36px 20px; text-align: center; color: var(--fg-4); font-size: 13px; line-height: 1.6; }
 .error-text { color: var(--danger); font-size: 12px; }

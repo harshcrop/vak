@@ -1,1 +1,1 @@
-fn main() { vak_lib::run() }
+fn main() { koe_lib::run() }

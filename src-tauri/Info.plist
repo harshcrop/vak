@@ -3,6 +3,6 @@
 <plist version="1.0">
 <dict>
   <key>NSMicrophoneUsageDescription</key>
-  <string>Vāk listens only while you hold the shortcut, and transcribes on this Mac.</string>
+  <string>Kōe listens only while you hold the shortcut, and transcribes on this Mac.</string>
 </dict>
 </plist>

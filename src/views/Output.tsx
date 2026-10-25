@@ -1,6 +1,6 @@
 import { ClipboardPaste, Copy, Keyboard, Lightbulb, Terminal, type LucideIcon } from "lucide-react";
 import { Header, Row, Section, Segmented, Select, Slider, Toggle } from "../components/ui";
-import { useVak, type Settings } from "../lib/api";
+import { useKoe, type Settings } from "../lib/api";
 
 const METHODS: { id: Settings["pasteMethod"]; title: string; desc: string; icon: LucideIcon }[] = [
   { id: "paste", title: "Paste (⌘V)", desc: "Fastest and safest. Works in almost every Mac app.", icon: ClipboardPaste },
@@ -10,7 +10,7 @@ const METHODS: { id: Settings["pasteMethod"]; title: string; desc: string; icon:
 ];
 
 export function OutputView() {
-  const { settings: s, update } = useVak();
+  const { settings: s, update } = useKoe();
   return (
     <>
       <Header title="Output" subtitle="How text lands in the app you are in" />

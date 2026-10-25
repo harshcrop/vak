@@ -28,25 +28,14 @@ pub struct ModelInfo {
     /// None when the engine isn't available in this build yet.
     pub file: Option<&'static str>,
     pub url: Option<&'static str>,
+    /// Decode language the model was fine-tuned for; overrides the user's setting.
+    #[serde(skip)]
+    pub language: Option<&'static str>,
 }
 
-const HF: &str = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/";
 
 pub fn catalog() -> Vec<ModelInfo> {
     vec![
-        ModelInfo {
-            id: "parakeet-v3",
-            name: "Parakeet V3",
-            description: "Fastest multilingual engine. Real-time transcription in 25 languages with automatic punctuation. Engine support is coming in a later build.",
-            size_bytes: 1_200_000_000,
-            languages: 25,
-            speed: 4,
-            accuracy: 4,
-            latency_ms: 180,
-            recommended: false,
-            file: None,
-            url: None,
-        },
         ModelInfo {
             id: "whisper-large-v3-turbo",
             name: "Whisper Large V3 Turbo",
@@ -56,9 +45,10 @@ pub fn catalog() -> Vec<ModelInfo> {
             speed: 3,
             accuracy: 5,
             latency_ms: 420,
-            recommended: false,
+            recommended: true,
             file: Some("ggml-large-v3-turbo.bin"),
-            url: Some("ggml-large-v3-turbo.bin"),
+            url: Some("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin"),
+            language: None,
         },
         ModelInfo {
             id: "whisper-medium",
@@ -71,46 +61,22 @@ pub fn catalog() -> Vec<ModelInfo> {
             latency_ms: 360,
             recommended: false,
             file: Some("ggml-medium.bin"),
-            url: Some("ggml-medium.bin"),
+            url: Some("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin"),
+            language: None,
         },
         ModelInfo {
-            id: "whisper-small",
-            name: "Whisper Small",
-            description: "Light on memory. Best on Intel Macs or when battery matters.",
-            size_bytes: 487_601_967,
-            languages: 99,
-            speed: 4,
-            accuracy: 3,
-            latency_ms: 190,
-            recommended: true,
-            file: Some("ggml-small.bin"),
-            url: Some("ggml-small.bin"),
-        },
-        ModelInfo {
-            id: "whisper-base",
-            name: "Whisper Base",
-            description: "Quick and small. Fine for short notes in a quiet room.",
-            size_bytes: 147_951_465,
-            languages: 99,
-            speed: 5,
-            accuracy: 2,
-            latency_ms: 110,
+            id: "whisper-hindi2hinglish-apex",
+            name: "Whisper Hindi2Hinglish Apex",
+            description: "Hindi and Hinglish speech written out in Roman script (\"kaise ho bhai\"). Oriserve's fine-tune of Large V3 Turbo, 8-bit.",
+            size_bytes: 874_188_075,
+            languages: 2,
+            speed: 3,
+            accuracy: 4,
+            latency_ms: 400,
             recommended: false,
-            file: Some("ggml-base.bin"),
-            url: Some("ggml-base.bin"),
-        },
-        ModelInfo {
-            id: "whisper-tiny",
-            name: "Whisper Tiny",
-            description: "Fallback engine. Used automatically when the active model isn't downloaded yet.",
-            size_bytes: 77_691_713,
-            languages: 99,
-            speed: 5,
-            accuracy: 1,
-            latency_ms: 60,
-            recommended: false,
-            file: Some("ggml-tiny.bin"),
-            url: Some("ggml-tiny.bin"),
+            file: Some("ggml-apex-hinglish-q8_0.bin"),
+            url: Some("https://huggingface.co/Marquestra/Whisper-Hindi2Hinglish-Apex-GGML/resolve/main/ggml-apex-hinglish-q8_0.bin"),
+            language: Some("en"),
         },
     ]
 }
@@ -209,7 +175,7 @@ pub async fn download(app: AppHandle, dir: PathBuf, id: String, downloads: Arc<D
         }
         map.insert(id.clone(), flag.clone());
     }
-    let result = run_download(&app, &dir, &id, file, &format!("{HF}{url}"), m.size_bytes, &flag).await;
+    let result = run_download(&app, &dir, &id, file, url, m.size_bytes, &flag).await;
     downloads.cancel.lock().remove(&id);
     let (state, error) = match &result {
         Ok(true) => ("done", None),
@@ -294,4 +260,45 @@ async fn run_download(
     drop(out);
     std::fs::rename(&part, &final_path).map_err(|e| e.to_string())?;
     Ok(true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn catalog_is_consistent() {
+        let c = catalog();
+        let mut ids: Vec<_> = c.iter().map(|m| m.id).collect();
+        ids.sort();
+        ids.dedup();
+        assert_eq!(ids.len(), c.len(), "duplicate ids");
+        assert!(find("whisper-large-v3-turbo").unwrap().recommended);
+        assert!(find("whisper-small").is_none() && find("whisper-base").is_none() && find("whisper-tiny").is_none());
+        assert!(find("parakeet-v3").is_none());
+        let dir = std::env::temp_dir().join("koe-models-empty");
+        let st = statuses(&dir, &Downloads::default());
+        assert!(st.iter().all(|m| !m.installed && !m.downloading));
+    }
+
+    /// Network: every download URL resolves and matches the size we show.
+    #[test]
+    #[ignore]
+    fn download_urls_resolve() {
+        let client = reqwest::blocking::Client::new();
+        for m in catalog().into_iter().filter(|m| m.url.is_some()) {
+            let url = m.url.unwrap();
+            let r = client.head(url).send().unwrap();
+            assert!(r.status().is_success(), "{} → {}", url, r.status());
+            let len = r
+                .headers()
+                .get("x-linked-size")
+                .or_else(|| r.headers().get(reqwest::header::CONTENT_LENGTH))
+                .and_then(|v| v.to_str().ok()?.parse::<u64>().ok())
+                .unwrap_or(0);
+            let diff = (len as i64 - m.size_bytes as i64).abs() as f64 / m.size_bytes as f64;
+            eprintln!("{:<24} {:>12} bytes (catalog {:>12})", m.id, len, m.size_bytes);
+            assert!(diff < 0.02, "{} size off by {:.1}%", m.id, diff * 100.0);
+        }
+    }
 }

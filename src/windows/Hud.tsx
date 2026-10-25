@@ -74,7 +74,7 @@ export function Hud() {
     >
       {hud.state === "listening" && (
         <div key={key} style={{ ...pill, gap: 13, padding: "11px 18px", boxShadow: `${glass.boxShadow}, 0 0 0 4px oklch(.68 .19 48 / .22)` }}>
-          <div style={{ width: 9, height: 9, borderRadius: "50%", background: "var(--rec)", boxShadow: "0 0 10px oklch(.66 .2 22 / .8)", animation: "vakpulse 1.6s ease-in-out infinite" }} />
+          <div style={{ width: 9, height: 9, borderRadius: "50%", background: "var(--rec)", boxShadow: "0 0 10px oklch(.66 .2 22 / .8)", animation: "koepulse 1.6s ease-in-out infinite" }} />
           <Waveform db={db} />
           <Elapsed />
           {hud.postProcess && <WandSparkles strokeWidth={1.75} style={{ width: 14, height: 14, color: "var(--accent-hi)" }} />}
@@ -86,7 +86,7 @@ export function Hud() {
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ display: "flex", gap: 3 }}>
               {[0, 0.18, 0.36].map((d) => (
-                <div key={d} style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--accent-hi)", animation: `vakpulse 1.1s ease-in-out ${d}s infinite` }} />
+                <div key={d} style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--accent-hi)", animation: `koepulse 1.1s ease-in-out ${d}s infinite` }} />
               ))}
             </div>
             <span style={{ fontSize: 11.5, letterSpacing: 0.3, color: "rgba(255,255,255,.55)" }}>
@@ -96,7 +96,7 @@ export function Hud() {
           </div>
           <div style={{ fontSize: 14, lineHeight: 1.55, color: "rgba(255,255,255,.55)" }}>
             Transcribing on this Mac
-            <span style={{ display: "inline-block", width: 2, height: 14, marginLeft: 3, verticalAlign: -2, background: "var(--accent-hi)", animation: "vakpulse 1s infinite" }} />
+            <span style={{ display: "inline-block", width: 2, height: 14, marginLeft: 3, verticalAlign: -2, background: "var(--accent-hi)", animation: "koepulse 1s infinite" }} />
           </div>
         </div>
       )}
@@ -118,8 +118,8 @@ export function Hud() {
 
       {(hud.state === "hint" || hud.state === "error") && (
         <div style={{ ...pill, gap: 10, padding: "10px 16px" }}>
-          <span className="deva" style={{ fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,.85)", lineHeight: 1 }}>
-            वाक्
+          <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: -0.2, color: "rgba(255,255,255,.85)", lineHeight: 1 }}>
+            Kōe
           </span>
           <div style={{ width: 1, height: 14, background: "rgba(255,255,255,.15)" }} />
           {hud.state === "error" ? (

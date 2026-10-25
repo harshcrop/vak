@@ -146,7 +146,7 @@ impl Default for Settings {
             mute_other_audio: false,
             audio_feedback: true,
             chime_volume: 0.64,
-            active_model: "whisper-small".into(),
+            active_model: "whisper-large-v3-turbo".into(),
             language: "auto".into(),
             paste_method: "paste".into(),
             auto_terminal: true,
@@ -154,12 +154,12 @@ impl Default for Settings {
             auto_submit: "off".into(),
             trailing_space: true,
             paste_delay_ms: 60,
-            vocabulary: vec!["Vāk".into(), "Kubernetes".into(), "gRPC".into()],
+            vocabulary: vec!["Kōe".into(), "Kubernetes".into(), "gRPC".into()],
             remove_fillers: true,
             smart_punctuation: true,
             match_app_style: false,
             corrections: vec![
-                Correction { heard: "vaak / walk".into(), written: "Vāk".into() },
+                Correction { heard: "koey / koi".into(), written: "Kōe".into() },
                 Correction { heard: "grpc / gee are pee see".into(), written: "gRPC".into() },
             ],
             correction_eagerness: 0.45,
@@ -170,7 +170,7 @@ impl Default for Settings {
             unload_after_min: 5,
             experimental: true,
             keep_transcripts: 500,
-            delete_audio_after_days: 3,
+            delete_audio_after_days: 0,
             post_process: PostProcess::default(),
         }
     }
@@ -211,5 +211,44 @@ fn merge(base: &mut serde_json::Value, patch: serde_json::Value) {
             }
         }
         (b, p) => *b = p,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn merge_keeps_untouched_fields_and_merges_nested() {
+        let s = Settings::default();
+        let n = s.merged(json!({ "pasteDelayMs": 120, "postProcess": { "provider": "hosted", "hosted": { "apiKey": "k" } } })).unwrap();
+        assert_eq!(n.paste_delay_ms, 120);
+        assert_eq!(n.post_process.provider, "hosted");
+        assert_eq!(n.post_process.hosted.api_key, "k");
+        // Siblings inside the nested object survive.
+        assert_eq!(n.post_process.hosted.model, s.post_process.hosted.model);
+        assert_eq!(n.post_process.recipes.len(), 4);
+        assert_eq!(n.shortcut, "Alt+Space");
+    }
+
+    #[test]
+    fn merge_rejects_wrong_types() {
+        assert!(Settings::default().merged(json!({ "pasteDelayMs": "fast" })).is_err());
+    }
+
+    #[test]
+    fn load_tolerates_missing_and_partial_files() {
+        let dir = std::env::temp_dir().join(format!("koe-settings-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let p = dir.join("settings.json");
+        assert_eq!(Settings::load(&p).shortcut, "Alt+Space");
+        std::fs::write(&p, r#"{"shortcut":"Alt+KeyD","somethingOld":1}"#).unwrap();
+        let s = Settings::load(&p);
+        assert_eq!(s.shortcut, "Alt+KeyD");
+        assert_eq!(s.paste_delay_ms, 60);
+        s.save(&p);
+        assert_eq!(Settings::load(&p).shortcut, "Alt+KeyD");
+        std::fs::remove_dir_all(dir).ok();
     }
 }

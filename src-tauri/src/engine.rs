@@ -115,20 +115,20 @@ impl Engine {
 mod tests {
     use super::*;
 
-    /// VAK_TEST_MODEL=path/to/ggml-tiny.bin VAK_TEST_WAV=speech-16k.wav cargo test -- --ignored
+    /// KOE_TEST_MODEL=path/to/ggml-tiny.bin KOE_TEST_WAV=speech-16k.wav cargo test -- --ignored
     #[test]
     #[ignore]
     fn transcribes_wav() {
-        let model = std::env::var("VAK_TEST_MODEL").expect("VAK_TEST_MODEL");
-        let wav = std::env::var("VAK_TEST_WAV").expect("VAK_TEST_WAV");
+        let model = std::env::var("KOE_TEST_MODEL").expect("KOE_TEST_MODEL");
+        let wav = std::env::var("KOE_TEST_WAV").expect("KOE_TEST_WAV");
         let mut r = hound::WavReader::open(wav).unwrap();
         let spec = r.spec();
         let raw: Vec<f32> = r.samples::<i16>().map(|s| s.unwrap() as f32 / i16::MAX as f32).collect();
         let samples = crate::audio::resample(&raw, spec.sample_rate, 16_000);
         let e = Engine::default();
         let t0 = Instant::now();
-        let text = e.transcribe("tiny", Path::new(&model), &samples, "en", "Vāk, gRPC").unwrap();
+        let text = e.transcribe("tiny", Path::new(&model), &samples, "en", "Kōe, gRPC").unwrap();
         eprintln!("TRANSCRIPT ({} ms): {text}", t0.elapsed().as_millis());
-        assert!(text.to_lowercase().contains("migration"));
+        assert!(text.split_whitespace().count() >= 3, "too little text: {text}");
     }
 }

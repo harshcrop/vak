@@ -2,13 +2,13 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ClipboardCopy, Mic, Power, Settings, WandSparkles, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { LevelBars, Logo, Toggle } from "../components/ui";
-import { api, shortcutText, useLevel, useVak, VakProvider } from "../lib/api";
+import { api, shortcutText, useLevel, useKoe, KoeProvider } from "../lib/api";
 
 export function Panel() {
   return (
-    <VakProvider>
+    <KoeProvider>
       <PanelBody />
-    </VakProvider>
+    </KoeProvider>
   );
 }
 
@@ -32,7 +32,7 @@ function Item({ icon: Icon, label, keys, onClick, disabled }: { icon: LucideIcon
 }
 
 function PanelBody() {
-  const { settings: s, update, models, history, defaultInput, permissions } = useVak();
+  const { settings: s, update, models, history, defaultInput, permissions } = useKoe();
   const db = useLevel();
   const [status, setStatus] = useState<string | null>(null);
   const active = models.find((m) => m.id === s.activeModel);
@@ -59,7 +59,7 @@ function PanelBody() {
     };
   }, []);
 
-  const title = !s.enabled ? "Vāk is paused" : ready ? "Vāk is ready" : active?.installed ? "Microphone blocked" : "No model yet";
+  const title = !s.enabled ? "Kōe is paused" : ready ? "Kōe is ready" : active?.installed ? "Microphone blocked" : "No model yet";
 
   return (
     <div style={{ height: "100%", borderRadius: 14, overflow: "hidden", background: "rgba(22,17,14,.62)", border: ".5px solid rgba(255,255,255,.14)", display: "flex", flexDirection: "column" }}>
@@ -74,7 +74,7 @@ function PanelBody() {
             </span>
           </div>
           <div style={{ marginLeft: "auto" }}>
-            <Toggle on={s.enabled} onChange={(enabled) => update({ enabled })} label="Enable Vāk" />
+            <Toggle on={s.enabled} onChange={(enabled) => update({ enabled })} label="Enable Kōe" />
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 13px", borderRadius: 11, background: "rgba(22,17,14,.72)", border: ".5px solid rgba(255,255,255,.17)" }}>
@@ -135,7 +135,7 @@ function PanelBody() {
         ))}
         <div style={{ height: 1, background: "rgba(255,246,238,.1)", margin: "6px 4px" }} />
         <Item icon={Settings} label="Settings…" keys="⌘," onClick={() => api.showMain()} />
-        <Item icon={Power} label="Quit Vāk" keys="⌘Q" onClick={() => api.quit()} />
+        <Item icon={Power} label="Quit Kōe" keys="⌘Q" onClick={() => api.quit()} />
       </div>
     </div>
   );

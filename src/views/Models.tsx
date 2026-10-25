@@ -1,10 +1,10 @@
 import { ArrowDownToLine, Check, CirclePlay, FolderOpen, Globe, Pause, Trash2 } from "lucide-react";
 import { Header, Meter, Select } from "../components/ui";
-import { api, formatBytes, LANGUAGES, useVak, type ModelStatus } from "../lib/api";
+import { api, formatBytes, LANGUAGES, useKoe, type ModelStatus } from "../lib/api";
 import type { ViewProps } from "../windows/MainWindow";
 
 export function ModelsView({ toast }: ViewProps) {
-  const { models, settings, update, progress, loadedModel } = useVak();
+  const { models, settings, update, progress, loadedModel } = useKoe();
   const active = models.find((m) => m.id === settings.activeModel);
   const rest = models.filter((m) => m.id !== settings.activeModel);
 
@@ -13,7 +13,7 @@ export function ModelsView({ toast }: ViewProps) {
 
   return (
     <>
-      <Header title="Models" subtitle="Pick the engine Vāk uses to turn speech into text">
+      <Header title="Models" subtitle="Pick the engine Kōe uses to turn speech into text">
         <Select
           icon={Globe}
           label="Language"

@@ -67,7 +67,31 @@ pub fn register_shortcuts(app: &AppHandle) {
     }
 }
 
-pub fn on_shortcut(app: &AppHandle, shortcut: &Shortcut, state: ShortcutState) {
+static WORKER: std::sync::OnceLock<std::sync::mpsc::Sender<(Shortcut, ShortcutState)>> = std::sync::OnceLock::new();
+
+/// Called from the global-shortcut plugin's handler. The plugin holds its shortcut
+/// table lock while calling us (on the main thread), so registering Esc or opening
+/// the mic from here would deadlock the app. Queue the event and return at once;
+/// a single worker thread handles events in order.
+pub fn dispatch(app: &AppHandle, shortcut: &Shortcut, state: ShortcutState) {
+    let tx = WORKER.get_or_init(|| {
+        let (tx, rx) = std::sync::mpsc::channel::<(Shortcut, ShortcutState)>();
+        let app = app.clone();
+        std::thread::Builder::new()
+            .name("koe-shortcuts".into())
+            .spawn(move || {
+                for (sc, st) in rx {
+                    log("hotkey", format!("event {} {:?}", sc.into_string(), st));
+                    on_shortcut(&app, &sc, st);
+                }
+            })
+            .expect("spawn shortcut worker");
+        tx
+    });
+    let _ = tx.send((*shortcut, state));
+}
+
+fn on_shortcut(app: &AppHandle, shortcut: &Shortcut, state: ShortcutState) {
     let s = app.state::<AppState>().settings.read().clone();
     if *shortcut == escape() {
         if state == ShortcutState::Pressed {
@@ -236,19 +260,25 @@ pub fn finish(app: &AppHandle) {
     };
     let pos = s.overlay_position.clone();
     let dur = captured.duration_ms();
+    log("hotkey", format!("released · {:.1} s captured", dur as f32 / 1000.0));
     if dur < 300 {
+        log("hotkey", "too short · nothing transcribed");
         let hint = if s.recording_mode == "ptt" { format!("Hold {} while you speak", pretty(&s.shortcut)) } else { "Too short — try again".into() };
         emit_hud(app, Hud::Hint { position: pos, message: hint });
         hide_hud_later(app, Duration::from_millis(1400));
         return;
     }
     let Some((model_id, model_path)) = resolve_model(app, &s) else {
-        emit_hud(app, Hud::Error { position: pos, message: "No model downloaded — open Vāk › Models".into() });
+        log("asr", "no model downloaded · open Models to get one");
+        emit_hud(app, Hud::Error { position: pos, message: "No model downloaded — open Kōe › Models".into() });
         hide_hud_later(app, Duration::from_millis(2600));
         return;
     };
     st.session.lock().phase = Phase::Transcribing;
-    let model_name = models::find(&model_id).map(|m| m.name).unwrap_or("Whisper");
+    let model = models::find(&model_id);
+    let model_name = model.as_ref().map(|m| m.name).unwrap_or("Whisper");
+    let forced_language = model.and_then(|m| m.language);
+    log("asr", format!("transcribing with {model_name}…"));
     emit_hud(
         app,
         Hud::Transcribing {
@@ -265,7 +295,8 @@ pub fn finish(app: &AppHandle) {
         let st = app.state::<AppState>();
         let t0 = Instant::now();
         let prompt = s.vocabulary.join(", ");
-        let result = st.engine.transcribe(&model_id, &model_path, &captured.samples, &s.language, &prompt);
+        let language = forced_language.unwrap_or(&s.language);
+        let result = st.engine.transcribe(&model_id, &model_path, &captured.samples, language, &prompt);
         let latency = t0.elapsed().as_millis() as u64;
         let raw = match result {
             Ok(t) => t,
@@ -298,12 +329,22 @@ pub fn finish(app: &AppHandle) {
 
         if text.is_empty() {
             st.session.lock().phase = Phase::Idle;
+            log("asr", "no speech recognised");
             emit_hud(&app, Hud::Hint { position: pos, message: "Didn’t catch anything".into() });
             hide_hud_later(&app, Duration::from_millis(1400));
             return;
         }
 
-        let method = match output::deliver(&app, &text, &s, &sess.front_app) {
+        // Without Accessibility, macOS drops synthetic keystrokes silently: the ⌘V "succeeds"
+        // and nothing appears. Say so instead, and leave the text on the clipboard.
+        let needs_keys = output::resolve_method(&s, &sess.front_app) != "clipboard";
+        let delivered = if needs_keys && !macos::accessibility_trusted_or_prompt() {
+            Err("Accessibility permission is off".to_string())
+        } else {
+            output::deliver(&app, &text, &s, &sess.front_app)
+        };
+        let mut paste_error = None;
+        let method = match delivered {
             Ok((method, restore)) => {
                 log("paste", format!("frontmost={} · method={} · delay={} ms", sess.front_app, method_label(&method), s.paste_delay_ms));
                 if let Some(ms) = restore {
@@ -314,6 +355,7 @@ pub fn finish(app: &AppHandle) {
             Err(e) => {
                 log("paste", format!("failed: {e} · text left on clipboard"));
                 let _ = output::copy(&text);
+                paste_error = Some(e);
                 "clipboard".into()
             }
         };
@@ -348,19 +390,28 @@ pub fn finish(app: &AppHandle) {
 
         st.session.lock().phase = Phase::Idle;
         let realtime = if latency > 0 { dur as f32 / latency as f32 } else { 0.0 };
+        if let Some(e) = paste_error {
+            let message = if macos::accessibility_trusted() {
+                format!("Couldn’t paste ({e}) — text copied, press ⌘V")
+            } else {
+                "Allow Kōe in Accessibility to paste — text copied, press ⌘V".into()
+            };
+            emit_hud(&app, Hud::Error { position: pos, message });
+            hide_hud_later(&app, Duration::from_millis(3500));
+            return;
+        }
         emit_hud(&app, Hud::Done { position: pos, words, text, method, realtime });
         hide_hud_later(&app, Duration::from_millis(1800));
     });
 }
 
-/// The active model if it's on disk, otherwise Tiny, otherwise anything installed.
+/// The active model if it's on disk, otherwise anything installed.
 pub fn resolve_model(app: &AppHandle, s: &Settings) -> Option<(String, std::path::PathBuf)> {
     let dir = app.state::<AppState>().paths.models.clone();
     let installed = |id: &str| {
         models::find(id).filter(|m| models::is_installed(&dir, m)).and_then(|m| models::model_path(&dir, &m).map(|p| (m.id.to_string(), p)))
     };
     installed(&s.active_model)
-        .or_else(|| installed("whisper-tiny"))
         .or_else(|| models::catalog().iter().find_map(|m| installed(m.id)))
 }
 
@@ -383,4 +434,89 @@ pub fn pretty(spec: &str) -> String {
             _ => p.to_string(),
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pretty_shortcuts() {
+        assert_eq!(pretty("Alt+Space"), "⌥Space");
+        assert_eq!(pretty("Control+Shift+Super+KeyK"), "⌃⇧⌘KeyK");
+    }
+
+    #[test]
+    fn default_shortcuts_parse() {
+        let s = Settings::default();
+        assert!(s.shortcut.parse::<Shortcut>().is_ok());
+        assert!(s.pp_shortcut.parse::<Shortcut>().is_ok());
+        assert_ne!(s.shortcut.parse::<Shortcut>().unwrap(), s.pp_shortcut.parse::<Shortcut>().unwrap());
+        // What the frontend recorder produces must parse too.
+        for spec in ["Alt+KeyD", "Control+Shift+Digit1", "F5", "Super+Alt+Space"] {
+            assert!(spec.parse::<Shortcut>().is_ok(), "{spec}");
+        }
+    }
+
+    /// Full offline pipeline minus the OS: WAV → Whisper → cleanup → history entry.
+    /// KOE_TEST_MODEL=ggml-tiny.bin KOE_TEST_WAV=speech.wav cargo test -- --ignored
+    #[test]
+    #[ignore]
+    fn wav_to_history_entry() {
+        let model = std::env::var("KOE_TEST_MODEL").expect("KOE_TEST_MODEL");
+        let wav = std::env::var("KOE_TEST_WAV").expect("KOE_TEST_WAV");
+        let mut r = hound::WavReader::open(wav).unwrap();
+        let rate = r.spec().sample_rate;
+        let raw: Vec<f32> = r.samples::<i16>().map(|s| s.unwrap() as f32 / i16::MAX as f32).collect();
+        let samples = audio::resample(&raw, rate, audio::TARGET_RATE);
+
+        let s = Settings::default();
+        let engine = crate::engine::Engine::default();
+        let path = std::path::Path::new(&model);
+        let prompt = s.vocabulary.join(", ");
+        let t0 = Instant::now();
+        engine.transcribe("whisper-tiny", path, &samples, "en", &prompt).unwrap();
+        let cold = t0.elapsed().as_millis() as u64;
+        // Second take: model already resident, like the app after preload.
+        let t1 = Instant::now();
+        let heard = engine.transcribe("whisper-tiny", path, &samples, "en", &prompt).unwrap();
+        let latency = t1.elapsed().as_millis() as u64;
+        let cleaned = text::clean(&heard, &s, "Notes");
+        eprintln!("heard:   {heard}\ncleaned: {cleaned}\nlatency: cold {cold} ms, warm {latency} ms");
+        // Model accuracy varies by size; assert what the pipeline itself guarantees.
+        let lower = cleaned.to_lowercase();
+        assert!(lower.contains("kubernetes") && lower.contains("thursday"), "{cleaned}");
+        assert!(!lower.split_whitespace().any(|w| w.trim_matches(|c: char| !c.is_alphanumeric()) == "um"), "filler left in: {cleaned}");
+        assert!(cleaned.chars().next().unwrap().is_uppercase());
+        assert!(cleaned.ends_with('.'));
+        assert!(latency < cold, "warm run should be faster than cold");
+
+        let d = std::env::temp_dir().join(format!("koe-e2e-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let mut h = history::History::load(&d);
+        let name = "take.wav".to_string();
+        audio::write_wav(&h.recordings.join(&name), &samples).unwrap();
+        h.push(
+            history::Entry {
+                id: "1".into(),
+                created: chrono::Utc::now().timestamp_millis(),
+                app: "Notes".into(),
+                duration_ms: (samples.len() as u64 * 1000) / 16_000,
+                words: text::word_count(&cleaned),
+                text: cleaned,
+                raw: heard,
+                post_processed: false,
+                starred: false,
+                audio: Some(name),
+                peaks: audio::peaks(&samples, 48),
+                model: "Whisper Tiny".into(),
+                latency_ms: latency,
+            },
+            500,
+        );
+        let back = history::History::load(&d);
+        assert_eq!(back.entries.len(), 1);
+        assert!(back.recordings.join("take.wav").exists());
+        std::fs::remove_dir_all(d).ok();
+    }
 }

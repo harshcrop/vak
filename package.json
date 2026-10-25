@@ -1,5 +1,5 @@
 {
-  "name": "vak",
+  "name": "koe",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -7,10 +7,12 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri"
+    "tauri": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri",
+    "build:mac": "tauri build --target universal-apple-darwin",
+    "build:app": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri build --bundles app && sh scripts/resign.sh"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2",
+    "@tauri-apps/api": "2.11.1",
     "lucide-react": "^0.460.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

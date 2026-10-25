@@ -283,15 +283,7 @@ fn permissions() -> macos::Permissions {
 
 #[tauri::command]
 async fn request_microphone() -> macos::Permissions {
-    // Opening an input stream is what triggers the system prompt.
-    let _ = tauri::async_runtime::spawn_blocking(|| {
-        let r = audio::Recorder::default();
-        if r.start(None, false, |_| {}).is_ok() {
-            std::thread::sleep(Duration::from_millis(400));
-            let _ = r.stop();
-        }
-    })
-    .await;
+    let _ = tauri::async_runtime::spawn_blocking(macos::request_microphone).await;
     macos::permissions()
 }
 
@@ -359,7 +351,7 @@ fn diagnostics_report(app: AppHandle, st: State<AppState>) -> Res<()> {
     let p = macos::permissions();
     let stats = stats(&st);
     let mut r = String::new();
-    r.push_str(&format!("Vāk {} · {} · macOS {}\n", app.package_info().version, std::env::consts::ARCH, macos::os_version()));
+    r.push_str(&format!("Kōe {} · {} · macOS {}\n", app.package_info().version, std::env::consts::ARCH, macos::os_version()));
     r.push_str(&format!("model: {} (loaded: {:?})\n", s.active_model, st.engine.loaded_id()));
     r.push_str(&format!("permissions: mic={} accessibility={}\n", p.microphone, p.accessibility));
     r.push_str(&format!("median latency: {:?} ms · transcripts: {}\n", stats.median_latency, stats.transcripts));
@@ -434,7 +426,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
-                .with_handler(|app, shortcut, event| pipeline::on_shortcut(app, shortcut, event.state()))
+                .with_handler(|app, shortcut, event| pipeline::dispatch(app, shortcut, event.state()))
                 .build(),
         )
         .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, None))
@@ -463,6 +455,14 @@ pub fn run() {
                 history: Mutex::new(history),
             });
 
+            for label in ["panel", "hud"] {
+                if let Some(w) = app.get_webview_window(label) {
+                    if let Ok(ns) = w.ns_window() {
+                        macos::float_over_fullscreen(ns);
+                    }
+                }
+            }
+
             tray::build(&handle)?;
             tray::set_visible(&handle, s.show_tray_icon);
             pipeline::register_shortcuts(&handle);
@@ -485,7 +485,7 @@ pub fn run() {
                 }
             });
 
-            log("app", format!("Vāk {} started", handle.package_info().version));
+            log("app", format!("Kōe {} started", handle.package_info().version));
             Ok(())
         })
         .on_window_event(|window, event| match (window.label(), event) {
@@ -529,7 +529,7 @@ pub fn run() {
             quit,
         ])
         .build(tauri::generate_context!())
-        .expect("error while building Vāk")
+        .expect("error while building Kōe")
         .run(|app, event| {
             if let RunEvent::Reopen { .. } = event {
                 if let Some(w) = app.get_webview_window("main") {

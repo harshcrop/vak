@@ -1,14 +1,14 @@
 import { ArrowRight, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { Header, Row, Section, Slider, Toggle } from "../components/ui";
-import { useVak } from "../lib/api";
+import { useKoe } from "../lib/api";
 
 function eagerLabel(v: number) {
   return v < 0.33 ? "strict" : v > 0.66 ? "eager" : "balanced";
 }
 
 export function VocabularyView() {
-  const { settings: s, update } = useVak();
+  const { settings: s, update } = useKoe();
   const [word, setWord] = useState("");
   const [heard, setHeard] = useState("");
   const [written, setWritten] = useState("");
@@ -27,7 +27,7 @@ export function VocabularyView() {
 
   return (
     <>
-      <Header title="Vocabulary" subtitle="Names and jargon Vāk should never mishear" />
+      <Header title="Vocabulary" subtitle="Names and jargon Kōe should never mishear" />
       <div className="content-scroll">
         <Section title="Words">
           <div className="group" style={{ padding: 14 }}>
@@ -104,9 +104,9 @@ export function VocabularyView() {
                 addCorrection();
               }}
             >
-              <input className="field mono" placeholder="vaak / walk" value={heard} onChange={(e) => setHeard(e.target.value)} />
+              <input className="field mono" placeholder="koey / koi" value={heard} onChange={(e) => setHeard(e.target.value)} />
               <ArrowRight strokeWidth={1.75} style={{ width: 14, height: 14, color: "var(--fg-5)" }} />
-              <input className="field mono" placeholder="Vāk" value={written} onChange={(e) => setWritten(e.target.value)} />
+              <input className="field mono" placeholder="Kōe" value={written} onChange={(e) => setWritten(e.target.value)} />
               <span />
             </form>
             <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", borderTop: ".5px solid rgba(255,255,255,.07)", background: "rgba(255,255,255,.03)" }}>

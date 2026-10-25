@@ -1,4 +1,4 @@
-//! Menu bar icon: the five voice bars (logo 2c), animated while you speak.
+//! Menu bar icon: the ō mark. The macron is the "recording" light: it tracks your voice while you speak.
 
 use parking_lot::Mutex;
 use std::sync::OnceLock;
@@ -7,28 +7,39 @@ use tauri::image::Image;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, PhysicalPosition};
 
-const ID: &str = "vak";
-const REST: [f32; 5] = [0.34, 0.62, 1.0, 0.52, 0.26];
+const ID: &str = "koe";
+/// Macron length (fraction of full) when idle.
+const REST: f32 = 1.0;
 
-fn bars_icon(levels: [f32; 5]) -> Image<'static> {
-    // 18pt template image at @2x.
+/// The ō mark as an 18pt template image at @2x, antialiased by 4×4 supersampling.
+fn mark_icon(macron: f32) -> Image<'static> {
     let (w, h) = (36u32, 36u32);
+    let (cx, cy, r_out, r_in) = (18.0f32, 22.5f32, 11.0f32, 6.8f32);
+    let (my0, my1) = (4.0f32, 8.4f32);
+    let half = 10.0 * macron.clamp(0.2, 1.0);
+    let rad = (my1 - my0) / 2.0;
+    let inside = |x: f32, y: f32| -> bool {
+        let d = ((x - cx).powi(2) + (y - cy).powi(2)).sqrt();
+        if d <= r_out && d >= r_in {
+            return true;
+        }
+        // Pill: rectangle with round caps.
+        let my = (my0 + my1) / 2.0;
+        let dx = ((x - cx).abs() - (half - rad)).max(0.0);
+        (dx * dx + (y - my).powi(2)).sqrt() <= rad
+    };
     let mut rgba = vec![0u8; (w * h * 4) as usize];
-    let bar_w = 4u32;
-    let gap = 3u32;
-    let total = bar_w * 5 + gap * 4;
-    let x0 = (w - total) / 2;
-    for (i, lv) in levels.iter().enumerate() {
-        let bh = ((lv.clamp(0.15, 1.0)) * 28.0).round() as u32;
-        let top = (h - bh) / 2;
-        let left = x0 + i as u32 * (bar_w + gap);
-        for y in top..top + bh {
-            for x in left..left + bar_w {
-                // Soften the corners of each bar.
-                let corner = (y == top || y == top + bh - 1) && (x == left || x == left + bar_w - 1);
-                let idx = ((y * w + x) * 4) as usize;
-                rgba[idx + 3] = if corner { 110 } else { 255 };
+    for py in 0..h {
+        for px in 0..w {
+            let mut hits = 0;
+            for sy in 0..4 {
+                for sx in 0..4 {
+                    if inside(px as f32 + (sx as f32 + 0.5) / 4.0, py as f32 + (sy as f32 + 0.5) / 4.0) {
+                        hits += 1;
+                    }
+                }
             }
+            rgba[((py * w + px) * 4 + 3) as usize] = (hits * 255 / 16) as u8;
         }
     }
     Image::new_owned(rgba, w, h)
@@ -36,9 +47,9 @@ fn bars_icon(levels: [f32; 5]) -> Image<'static> {
 
 pub fn build(app: &AppHandle) -> tauri::Result<TrayIcon> {
     TrayIconBuilder::with_id(ID)
-        .icon(bars_icon(REST))
+        .icon(mark_icon(REST))
         .icon_as_template(true)
-        .tooltip("Vāk")
+        .tooltip("Kōe")
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, rect, .. } = event {
                 toggle_panel(tray.app_handle(), rect);
@@ -53,7 +64,15 @@ fn toggle_panel(app: &AppHandle, rect: tauri::Rect) {
         let _ = panel.hide();
         return;
     }
-    let scale = panel.scale_factor().unwrap_or(2.0);
+    // Use the scale of the screen whose menu bar was clicked, not the one the panel was last on.
+    let panel_scale = panel.scale_factor().unwrap_or(2.0);
+    let pos = rect.position.to_physical::<f64>(panel_scale);
+    let scale = app
+        .monitor_from_point(pos.x, pos.y)
+        .ok()
+        .flatten()
+        .map(|m| m.scale_factor())
+        .unwrap_or(panel_scale);
     let pos = rect.position.to_physical::<f64>(scale);
     let size = rect.size.to_physical::<f64>(scale);
     let pw = 330.0 * scale;
@@ -64,37 +83,26 @@ fn toggle_panel(app: &AppHandle, rect: tauri::Rect) {
     let _ = panel.set_focus();
 }
 
-struct Anim {
-    last: Instant,
-    phase: usize,
-}
-
-static ANIM: OnceLock<Mutex<Anim>> = OnceLock::new();
+static LAST: OnceLock<Mutex<Instant>> = OnceLock::new();
 
 /// Called from the level meter while recording; throttled to ~8 fps.
 pub fn animate(app: &AppHandle, db: f32) {
-    let anim = ANIM.get_or_init(|| Mutex::new(Anim { last: Instant::now(), phase: 0 }));
-    let mut a = anim.lock();
-    if a.last.elapsed().as_millis() < 120 {
+    let last = LAST.get_or_init(|| Mutex::new(Instant::now()));
+    let mut t = last.lock();
+    if t.elapsed().as_millis() < 120 {
         return;
     }
-    a.last = Instant::now();
-    a.phase = (a.phase + 1) % 5;
+    *t = Instant::now();
     let loud = ((db + 60.0) / 50.0).clamp(0.0, 1.0);
-    let mut levels = [0f32; 5];
-    for (i, l) in levels.iter_mut().enumerate() {
-        let wobble = ((i + a.phase) % 5) as f32 / 4.0;
-        *l = 0.2 + loud * (0.45 + 0.55 * (REST[i] * 0.6 + wobble * 0.4));
-    }
     if let Some(tray) = app.tray_by_id(ID) {
-        let _ = tray.set_icon(Some(bars_icon(levels)));
+        let _ = tray.set_icon(Some(mark_icon(0.25 + 0.75 * loud)));
         let _ = tray.set_icon_as_template(true);
     }
 }
 
 pub fn reset(app: &AppHandle) {
     if let Some(tray) = app.tray_by_id(ID) {
-        let _ = tray.set_icon(Some(bars_icon(REST)));
+        let _ = tray.set_icon(Some(mark_icon(REST)));
         let _ = tray.set_icon_as_template(true);
     }
 }
